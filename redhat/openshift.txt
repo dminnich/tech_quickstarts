@@ -1,0 +1,82 @@
+1) CentOS VM with lots of RAM and a large secondary disk and selinux enabled
+
+2) DNS entries for the host and wildcard for paas.lan
+3) systemctl disable firewalld
+   systemctl stop firewalld
+4) yum -y update
+   yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct vim
+   yum -y install epel-release
+   sed -i -e "s/^enabled=1/enabled=0/" /etc/yum.repos.d/epel.repo
+   yum -y --enablerepo=epel install ansible pyOpenSSL docker-1.12.6
+
+5) cd ~
+   git clone https://github.com/openshift/openshift-ansible
+   cd openshift-ansible
+   git checkout release-3.6
+
+6) cat <<EOF > /etc/sysconfig/docker-storage-setup
+DEVS=/dev/sdb
+VG=docker-vg
+EOF
+
+  systemctl stop docker
+  docker-storage-setup
+  systemctl enable docker
+  systemctl start docker
+
+7) ssh-keygen
+   ssh-copy-id -i ~/.ssh/id_rsa.pub openshift.lan
+
+8) vim /etc/ansible/hosts
+[OSEv3:children]
+masters
+nodes
+etcd
+nfs
+
+[OSEv3:vars]
+ansible_ssh_user=root
+openshift_deployment_type=origin
+openshift_clock_enabled=true
+containerized=false
+openshift_master_default_subdomain=paas.lan
+openshift_disable_check=memory_availability,disk_availability
+openshift_hosted_registry_storage_kind=nfs
+openshift_hosted_registry_storage_access_modes=['ReadWriteMany']
+openshift_hosted_registry_storage_nfs_directory=/exports
+openshift_hosted_registry_storage_nfs_options='*(rw,root_squash)'
+openshift_hosted_registry_storage_volume_name=registry
+openshift_hosted_registry_storage_volume_size=20Gi
+openshift_metrics_install_metrics=false
+openshift_logging_install_logging=false
+openshift_enable_service_catalog=false
+openshift_service_catalog_image_prefix=openshift/origin-
+openshift_service_catalog_image_version=latest
+#openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
+#openshift_master_htpasswd_users={'user1': '$apr1$Mps3XJcI$vdDlgGEw/aA0jV6An4RTk.'}
+
+
+[masters]
+openshift.lan
+
+[etcd]
+openshift.lan
+
+[nodes]
+openshift.lan openshift_docker_options="--log-driver json-file --log-opt max-size=1M --log-opt max-file=3" openshift_schedulable=true openshift_node_labels="{'region': 'infra', 'zone': 'default'}"
+
+[nfs]
+openshift.lan
+
+
+9) shutdown the VM and snapshot it.
+   bring the VM back up.
+
+10) ansible-playbook ~/openshift-ansible/playbooks/byo/config.yml
+    wait forever
+    even after playbooks are done registry and router may not be fully deployed or downloaded.
+    keep waiting or try to pull down the containers one by one with things like "docker pull openshift/origin-deployer:v3.6.1" yourself to see if you can get it unstuck.
+
+
+
+

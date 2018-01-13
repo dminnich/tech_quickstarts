@@ -1,0 +1,32 @@
+1) Two CentOS 7 VMs with an extra hard drive attached as /dev/sdb
+
+On both nodes
+2) /etc/hosts file entries for themselves and the other or correct DNS records
+3) yum update
+4) yum install centos-release-gluster
+5) yum install glusterfs-server
+6) cfdisk /dev/sdb
+   create one partiton of linux
+   mkfs.xfs -i size=512 /dev/sdb1
+   mkdir -p /data/brick1
+   echo '/dev/sdb1 /data/brick1 xfs defaults 1 2' >> /etc/fstab
+   mount -a
+   mkdir -p /data/brick1/gv0
+7) systemctl disable firewalld
+   systemctl stop firewalld
+   systemctl enable glusterd
+   systemctl start glusterd
+
+
+On one node
+10) gluster peer probe $other_node
+    gluster peer status
+11) gluster volume create gv0 replica 2 server1:/data/brick1/gv0 server2:/data/brick1/gv0
+    gluster volume start gv0
+    gluster volume info
+
+
+Mount it
+12) mount -t glusterfs server1:/gv0 /mnt
+    for i in `seq -w 1 100`; do cp -rp /var/log/messages /mnt/gv0/copy-test-$i; done
+    ls -lha /data/brick1/gv0 on both servers

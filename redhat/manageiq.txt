@@ -1,0 +1,42 @@
+1) Download ManageIQ VM image for ovirt.
+2) Go to https://ovirt-engine/services/pki-resource?resource=ca-certificate&format=X509-PEM-CA  and trust the CA for all things
+   Storage > Disks > Upload > Start choose disk > 50GB, manageiq
+   Also, create a template from a known working vm
+
+3) New VM
+   4-6GB of memory and 2 cores at least
+   attach miq disk set bootable
+   boot vm
+   pull up console
+   root / smartvm
+   systemctl stop tuned
+   systemctl disable tuned
+   appliance_console
+   wait a long damn time and DB will show as up in summary.
+   later evm will show as up as well.
+
+
+4) https://manageiq.lan/
+   admin / smartvm
+   compute > infra > providers > add new provider
+   name: ovirt type: rhev
+   hostname: ovirt.lan port: 443 no verify tls
+   username: admin@internal password: test1234
+   validate
+   add
+   check the provider > refresh
+   wait a bit.
+   click on the provider and see details.
+
+5) compute > infra > vm > all vms > lifecycle > new vm
+   template > next > next > etc
+
+6) check out the VM in ovirt
+
+
+
+
+
+
+
+

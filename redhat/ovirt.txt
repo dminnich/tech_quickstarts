@@ -1,0 +1,41 @@
+1) Cent OS 7 on bare metal giving / lots of space.
+2) vim /etc/hosts
+    192.168.1.47 lab.lan
+    192.168.1.48 ovirt.lan
+    OR DNS
+3) yum -y update
+4) yum -y install nfs-utils
+   systemctl enable rpcbind
+   systemctl enable nfs-server
+   mkdir -p /exports/{he,data,iso,export}
+   chmod -Rf 755 /exports/
+   chown -Rf 36:36 /exports/
+   vim /etc/exports
+      /exports/data *(rw)
+      /exports/iso *(rw)
+      /exports/export *(rw)
+      /exports/he *(rw)
+    systemctl start rpcbind
+    systemctl start nfs-server
+5) yum install http://resources.ovirt.org/pub/yum-repo/ovirt-release42.rpm
+6) yum -y install ovirt-hosted-engine-setup
+7) hosted-engine --deploy
+     point at /exports/he
+     wait forever
+8) reboot
+     wait forever
+     saslpasswd2 -a libvirt root
+     vim /etc/libvirt/auth.conf
+     [credentials-def]
+     authname=root
+     password=test1234
+
+    [auth-libvirt-default]
+    credentials=def
+
+9) https://ovirt.lan
+     add storage domains specifying correct types. don't add he domain.
+     make sure domain and cluster comes up happy.
+     scp ISOs ot /exports/iso/?/images/11111111-1111-1111-1111-111111111111/
+     Go to https://ovirt-engine/services/pki-resource?resource=ca-certificate&format=X509-PEM-CA  and trust the CA for all things
+     create a vm

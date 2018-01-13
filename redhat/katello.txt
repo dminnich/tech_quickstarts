@@ -1,0 +1,56 @@
+Katello as just a yum content host.
+
+CentOS VM with lots of RAM and storage for the server.
+CentOS VM with minimal specs for the client.
+Both should have proper hostname and DNS lookups.
+
+Server
+1) systemctl disable firewalld
+   systemctl stop firewalld
+2) yum -y update
+   yum install chrony
+   systemctl start chronyd
+   systemctl enable chronyd
+3) yum -y localinstall http://fedorapeople.org/groups/katello/releases/yum/3.5/katello/el7/x86_64/katello-repos-latest.rpm
+   yum -y localinstall http://yum.theforeman.org/releases/1.16/el7/x86_64/foreman-release.rpm
+   yum -y localinstall https://yum.puppetlabs.com/puppetlabs-release-pc1-el-7.noarch.rpm
+   yum -y localinstall http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+   yum -y install foreman-release-scl python-django
+   yum -y update
+   yum -y install katello
+4) foreman-installer --scenario katello --disable-system-checks -v
+
+5) In the GUI create:
+   Organization
+   lifecycle environments (optional)
+   GPG keys (optional)
+   sync plans (optional)
+   products
+   repos
+   sync the repos
+   content views + publish them and activation key (optional)
+
+
+
+Client
+1) yum -y update
+2)  #your katello server bootstrap
+   yum -y localinstall http://katello.lan/pub/katello-ca-consumer-katello.lan-1.0-1.noarch.rpm
+   #other things
+   yum -y localinstall -y http://fedorapeople.org/groups/katello/releases/yum/3.5/client/el7/x86_64/katello-client-repos-latest.rpm
+   yum -y localinstall http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+   yum install katello-agent subscription-manager
+   systemctl start  goferd.service
+   systemctl enable  goferd.service
+
+3) stop using internet based repos now that your server has them all
+   mv /etc/yum.repos.d/* /var/tmp/
+   yum clean all
+   yum repo list
+
+3) subscription-manager register --org=n --activation-key=all
+   subscription-manager status
+   subscription-manager repos --list
+   susbscription-manager attach xxx (optional)
+   yum repolist
+   yumdownloader glusterfs-server  or some other mirrored package
