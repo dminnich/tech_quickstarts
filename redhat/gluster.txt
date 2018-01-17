@@ -1,4 +1,4 @@
-1) Two CentOS 7 VMs with an extra hard drive attached as /dev/sdb
+1) Two CentOS 7 VMs with extra hard drives attached
 
 On both nodes
 2) /etc/hosts file entries for themselves and the other or correct DNS records

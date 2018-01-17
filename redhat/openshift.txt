@@ -1,6 +1,10 @@
 1) CentOS VM with lots of RAM and a large secondary disk and selinux enabled
 
 2) DNS entries for the host and wildcard for paas.lan
+pfsense
+server:
+local-zone: "paas.lan" redirect
+local-data: "paas.lan 300 IN A 192.168.1.51"
 3) systemctl disable firewalld
    systemctl stop firewalld
 4) yum -y update

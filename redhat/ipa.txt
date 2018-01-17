@@ -1,0 +1,86 @@
+1) Two CentOS 7 VMs. One beefy and one regular.  Both configured for proper DNS.
+
+
+2)On both boxes
+   make sure IPv6 is enabled
+   systemctl stop nscd
+   systemctl disable nscd
+   #must be fqdn
+   hostname
+   yum -y update
+   yum -y install bind-utils
+   #fwd and reverse must be good
+   dig `hostname` +short A
+   z=$(dig `hostname` +short A)
+   dig -x $z +short
+   vim /etc/hosts
+   192.168.1.56 ipas.ipa.lan ipas
+   192.168.1.55 ipac.ipa.lan ipac
+   systemctl disable firewalld
+   systemctl stop firewalld
+
+3)Delegate the domain from the primary name server to the IPA server
+pfsense
+server:
+#domain-insecure: "ipa.lan."
+Domain overrides
+ipa.lan 192.168.1.56
+
+
+4)On the server
+yum install ipa-server ipa-server-dns
+ipa-server-install --unattended --ds-password=test1234 --admin-password=test1234 --domain=ipa.lan --hostname=ipas.ipa.lan --realm=IPA.LAN --setup-dns --mkhomedir --ssh-trust-dns --auto-reverse --forwarder=192.168.1.1 -v
+
+
+
+5)On the client
+yum install ipa-client openldap-clients
+vim /etc/resolv.conf
+nameserver 192.168.1.56
+ipa-client-install --unattended --domain=ipa.lan --server=ipas.ipa.lan --realm=IPA.LAN --hostname=ipac.ipa.lan --principal=admin --password=test1234 --enable-dns-updates --mkhomedir --ntp-server=ipas.ipa.lan --force-ntpd --ssh-trust-dns --request-cert --permit --enable-dns-updates -v
+
+
+6)Testing
+#server
+kinit admin
+ipa user-find
+ldapsearch  -h ipas.ipa.lan -b "cn=accounts,dc=ipa,dc=lan" -Y GSSAPI
+https://ipas.ipa.lan
+#client
+cat /etc/resolv.conf
+dig @192.168.1.56 ipac.ipa.lan +short
+certutil -L -d /etc/ipa/nssdb -n "Local IPA host"
+cat /etc/krb5.conf
+kinit admin
+klist
+klist -k -t /etc/krb5.keytab
+cat /etc/openldap/ldap.conf
+cat /etc/sssd/sssd.conf
+ldapsearch  -h ipas.ipa.lan -b "cn=accounts,dc=ipa,dc=lan" -Y GSSAPI
+
+
+
+##Adding a replica##
+1) Standup another server
+2)On both boxes
+   make sure IPv6 is enabled
+   systemctl stop nscd
+   systemctl disable nscd
+   #must be fqdn
+   hostname
+   yum -y update
+   yum -y install bind-utils
+   #fwd and reverse must be good
+   dig `hostname` +short A
+   z=$(dig `hostname` +short A)
+   dig -x $z +short
+   vim /etc/hosts
+   192.168.1.57 ipas2.ipa.lan ipas2
+   192.168.1.56 ipas.ipa.lan ipas
+   192.168.1.55 ipac.ipa.lan ipac
+   systemctl disable firewalld
+   systemctl stop firewalld
+
+3)On the replica server
+yum install ipa-server ipa-server-dns
+ipa-replica-install --unattended --principal=admin --admin-password=test1234 --server=ipas.ipa.lan --realm=IPA.LAN --domain=ipa.lan --hostname=ipas2.ipa.lan --setup-dns --forwarder=192.168.1.1 --mkhomedir --ssh-trust-dns --auto-reverse --setup-ca -v
