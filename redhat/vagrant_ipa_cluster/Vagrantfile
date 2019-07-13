@@ -1,0 +1,49 @@
+Vagrant.configure("2") do |config|
+#server
+  config.vm.define :server do |server|
+    server.vm.box = "centos/7"
+
+    server.vm.network :private_network,
+      :ip => "192.168.123.101",
+      :libvirt__network_name => "vagrant-static"
+    server.vm.provider :libvirt do |libvirt|
+      libvirt.memory = 4096
+      libvirt.random :model => 'random'
+    end
+  
+  #run ansible on all vms
+  config.vm.provision "ansible" do |ansible|
+    ansible.verbose = "v"
+    ansible.become = true
+    ansible.playbook = "playbook.yml"
+  end
+  end
+  
+
+#replica
+  config.vm.define :replica do |replica|
+    replica.vm.box = "centos/7"
+
+    replica.vm.network :private_network,
+      :ip => "192.168.123.102",
+      :libvirt__network_name => "vagrant-static"
+    replica.vm.provider :libvirt do |libvirt|
+      libvirt.memory = 4096
+      libvirt.random :model => 'random'
+    end
+  end
+  
+#client
+  config.vm.define :client do |client|
+    client.vm.box = "centos/7"
+
+    client.vm.network :private_network,
+      :ip => "192.168.123.103",
+      :libvirt__network_name => "vagrant-static"
+    client.vm.provider :libvirt do |libvirt|
+      libvirt.memory = 1024
+      libvirt.random :model => 'random'
+    end
+  
+  end
+end
